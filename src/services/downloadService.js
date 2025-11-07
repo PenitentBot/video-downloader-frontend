@@ -1,32 +1,51 @@
-import axios from 'axios';
+const API_URL = 'https://your-render-backend.onrender.com';
 
-const API_URL = 'https://video-downloader-backend-c550.onrender.com';
-
-const downloadService = {
-  downloadVideo: async (url, format) => {
-    try {
-      const response = await axios.post(
-        `${API_URL}/api/download`,
-        { url, format },
-        { responseType: 'blob' }
-      );
-
-      return response.data;
-    } catch (error) {
-      throw new Error(error.response?.data?.error || error.message);
-    }
-  },
-
-  triggerDownload: (blob, filename) => {
-    const urlBlob = window.URL.createObjectURL(new Blob([blob]));
-    const link = document.createElement('a');
-    link.href = urlBlob;
-    link.setAttribute('download', filename);
-    document.body.appendChild(link);
-    link.click();
-    link.parentNode.removeChild(link);
-    window.URL.revokeObjectURL(urlBlob);
-  }
+export const downloadVideo = (url, quality = '480') => {
+  fetch(`${API_URL}/api/download-proxy`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ 
+      url, 
+      format: 'video',
+      quality 
+    })
+  }).then(r => r.blob()).then(blob => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'video.mp4';
+    a.click();
+  });
 };
 
-export default downloadService;
+export const downloadAudio = (url) => {
+  fetch(`${API_URL}/api/download-proxy`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ 
+      url, 
+      format: 'audio'
+    })
+  }).then(r => r.blob()).then(blob => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'audio.mp3';
+    a.click();
+  });
+};
+
+export const downloadPlaylist = (url, quality = '480') => {
+  fetch(`${API_URL}/api/download-playlist`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ 
+      url, 
+      format: 'video',
+      quality 
+    })
+  }).then(r => r.blob()).then(blob => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'playlist.zip';
+    a.click();
+  });
+};
