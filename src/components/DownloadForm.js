@@ -2,11 +2,10 @@ import React, { useState, useRef } from 'react';
 import MetadataPreview from './MetadataPreview';
 import PlaylistViewer from './PlaylistViewer';
 
-function DownloadForm({ isPremium }) {
+function DownloadForm() {
   const [url, setUrl] = useState('');
   const [format, setFormat] = useState('video');
-  const [resolution, setResolution] = useState('720p');
-  const [audioQuality, setAudioQuality] = useState('128k');
+  const [quality, setQuality] = useState('480');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -18,35 +17,7 @@ function DownloadForm({ isPremium }) {
   const [playlist, setPlaylist] = useState(null);
   const [isPlaylist, setIsPlaylist] = useState(false);
 
-  // Ad Modal States
-  const [showAd, setShowAd] = useState(false);
-  const [adType, setAdType] = useState('');
-  const [adCount, setAdCount] = useState(0);
-  const [adAction, setAdAction] = useState(null);
-
   const abortControllerRef = useRef(null);
-
-  // Show Ad Modal
-  const showAdModal = (type, action) => {
-    if (isPremium) {
-      // Premium users skip ads
-      if (action) action();
-      return;
-    }
-    
-    setAdType(type);
-    setAdAction(() => action);
-    setShowAd(true);
-    setAdCount(adCount + 1);
-  };
-
-  // Close Ad & Execute Action
-  const closeAdAndContinue = () => {
-    setShowAd(false);
-    if (adAction) {
-      setTimeout(adAction, 300);
-    }
-  };
 
   const handleCancel = () => {
     if (abortControllerRef.current) {
@@ -68,59 +39,49 @@ function DownloadForm({ isPremium }) {
       return;
     }
 
-    // Show Ad #1 on URL paste
-    showAdModal('url_paste', async () => {
-      setMetadataLoading(true);
-      setMetadataError('');
-      setPlaylist(null);
-      setIsPlaylist(false);
+    setMetadataLoading(true);
+    setMetadataError('');
+    setPlaylist(null);
+    setIsPlaylist(false);
 
-      const isPlaylistUrl = newUrl.includes('playlist?list=') || 
-                            newUrl.includes('/playlist/') ||
-                            newUrl.includes('&list=');
+    const isPlaylistUrl = newUrl.includes('playlist?list=') || 
+                          newUrl.includes('/playlist/') ||
+                          newUrl.includes('&list=');
 
-      try {
-        if (isPlaylistUrl) {
-          const response = await fetch('http://localhost:3000/api/playlist-videos', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: newUrl })
-          });
+    try {
+      if (isPlaylistUrl) {
+        const response = await fetch('http://localhost:3000/api/playlist-videos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: newUrl })
+        });
 
-          if (response.ok) {
-            const data = await response.json();
-            setPlaylist(data);
-            setIsPlaylist(true);
-          } else {
-            setMetadataError('Failed to fetch playlist');
-          }
+        if (response.ok) {
+          const data = await response.json();
+          setPlaylist(data);
+          setIsPlaylist(true);
         } else {
-          const response = await fetch('http://localhost:3000/api/metadata', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: newUrl })
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            setMetadata(data);
-          } else {
-            setMetadataError('Failed to fetch video info');
-          }
+          setMetadataError('Failed to fetch playlist');
         }
-      } catch (err) {
-        setMetadataError('Invalid URL');
-      } finally {
-        setMetadataLoading(false);
-      }
-    });
-  };
+      } else {
+        const response = await fetch('http://localhost:3000/api/metadata', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: newUrl })
+        });
 
-  const handleFormatChange = (newFormat) => {
-    // Show Ad #2 on format change
-    showAdModal('format_select', () => {
-      setFormat(newFormat);
-    });
+        if (response.ok) {
+          const data = await response.json();
+          setMetadata(data);
+        } else {
+          setMetadataError('Failed to fetch video info');
+        }
+      }
+    } catch (err) {
+      setMetadataError('Invalid URL');
+    } finally {
+      setMetadataLoading(false);
+    }
   };
 
   const handleDownloadPlaylistVideos = async (videosToDownload) => {
@@ -143,9 +104,7 @@ function DownloadForm({ isPremium }) {
           body: JSON.stringify({
             url: video.url,
             format,
-            resolution: format === 'audio' ? null : resolution,
-            audioQuality: format === 'audio' ? audioQuality : null,
-            isPremium
+            quality
           }),
           signal: abortControllerRef.current.signal
         });
@@ -189,109 +148,59 @@ function DownloadForm({ isPremium }) {
       return;
     }
 
-    // Show Ad #3 on download click
-    showAdModal('download_click', async () => {
-      setError('');
-      setSuccess('');
-      setLoading(true);
-      abortControllerRef.current = new AbortController();
+    setError('');
+    setSuccess('');
+    setLoading(true);
+    abortControllerRef.current = new AbortController();
 
-      try {
-        if (!url.trim()) {
-          throw new Error('Please paste a URL');
-        }
-
-        const response = await fetch('http://localhost:3000/api/download-proxy', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            url,
-            format,
-            resolution: format === 'audio' ? null : resolution,
-            audioQuality: format === 'audio' ? audioQuality : null,
-            isPremium
-          }),
-          signal: abortControllerRef.current.signal
-        });
-
-        if (!response.ok) {
-          throw new Error('Download failed');
-        }
-
-        const blob = await response.blob();
-        const urlBlob = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = urlBlob;
-        link.download = format === 'audio' ? 'audio.mp3' : 'video.mp4';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(urlBlob);
-
-        setUrl('');
-        setMetadata(null);
-        setSuccess('✅ Download completed!');
-
-        setTimeout(() => {
-          setSuccess('');
-          setLoading(false);
-        }, 2000);
-
-      } catch (err) {
-        if (err.name === 'AbortError') {
-          setError('⚠️ Download cancelled');
-        } else {
-          console.error('Error:', err);
-          setError(`❌ Error: ${err.message}`);
-        }
-        setLoading(false);
+    try {
+      if (!url.trim()) {
+        throw new Error('Please paste a URL');
       }
-    });
-  };
 
-  // Ad Modal Component
-  const AdModal = () => {
-    if (!showAd) return null;
+      const response = await fetch('http://localhost:3000/api/download-proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url,
+          format,
+          quality
+        }),
+        signal: abortControllerRef.current.signal
+      });
 
-    const adMessages = {
-      url_paste: { title: '📢 Advertisement', content: 'Check out our premium features!' },
-      format_select: { title: '📢 Advertisement', content: 'Go premium to unlock all formats!' },
-      download_click: { title: '📢 Advertisement', content: 'Download faster with premium!' }
-    };
+      if (!response.ok) {
+        throw new Error('Download failed');
+      }
 
-    const adData = adMessages[adType] || adMessages.url_paste;
+      const blob = await response.blob();
+      const urlBlob = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = urlBlob;
+      link.download = format === 'audio' ? 'audio.mp3' : `video_${quality}p.mp4`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(urlBlob);
 
-    return (
-      <div style={styles.adModal}>
-        <div style={styles.adContent}>
-          <div style={styles.adClose} onClick={closeAdAndContinue}>✕</div>
-          <h2 style={styles.adTitle}>{adData.title}</h2>
-          
-          {/* Ad Placeholder */}
-          <div style={styles.adPlaceholder}>
-            <div style={styles.adBanner}>
-              <p style={styles.adBannerText}>{adData.content}</p>
-              <div style={styles.adGrid}>
-                <div style={styles.adItem}>Ad Banner 1</div>
-                <div style={styles.adItem}>Ad Banner 2</div>
-              </div>
-            </div>
-          </div>
+      setUrl('');
+      setMetadata(null);
+      setSuccess('✅ Download completed!');
 
-          {/* Close Button */}
-          <button 
-            onClick={closeAdAndContinue}
-            style={styles.adCloseBtn}
-            onMouseEnter={(e) => e.target.style.background = '#667eea'}
-            onMouseLeave={(e) => e.target.style.background = '#764ba2'}
-          >
-            Continue
-          </button>
-          
-          <p style={styles.adCounter}>Ad #{adCount}</p>
-        </div>
-      </div>
-    );
+      setTimeout(() => {
+        setSuccess('');
+        setLoading(false);
+      }, 2000);
+
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        setError('⚠️ Download cancelled');
+      } else {
+        console.error('Error:', err);
+        setError(`❌ Error: ${err.message}`);
+      }
+      setLoading(false);
+    }
   };
 
   return (
@@ -330,7 +239,7 @@ function DownloadForm({ isPremium }) {
                 </label>
                 <select 
                   value={format} 
-                  onChange={(e) => handleFormatChange(e.target.value)}
+                  onChange={(e) => setFormat(e.target.value)}
                   disabled={loading}
                   style={styles.select}
                 >
@@ -347,25 +256,26 @@ function DownloadForm({ isPremium }) {
                 </label>
                 {format === 'audio' ? (
                   <select 
-                    value={audioQuality} 
-                    onChange={(e) => setAudioQuality(e.target.value)}
+                    value={quality} 
+                    onChange={(e) => setQuality(e.target.value)}
                     disabled={loading}
                     style={styles.select}
                   >
-                    <option value="128k">128k (Free)</option>
-                    {isPremium && <option value="max">Max (Premium)</option>}
+                    <option value="128">128k (Standard)</option>
+                    <option value="192">192k (Good)</option>
+                    <option value="256">256k (High)</option>
+                    <option value="320">320k (Maximum)</option>
                   </select>
                 ) : (
                   <select 
-                    value={resolution} 
-                    onChange={(e) => setResolution(e.target.value)}
+                    value={quality} 
+                    onChange={(e) => setQuality(e.target.value)}
                     disabled={loading}
                     style={styles.select}
                   >
-                    <option value="480p">480p (Free)</option>
-                    <option value="720p">720p (Free)</option>
-                    {isPremium && <option value="1080p">1080p (Premium)</option>}
-                    {isPremium && <option value="best">Best (Premium)</option>}
+                    <option value="480">480p (Fast)</option>
+                    <option value="720">720p (Good)</option>
+                    <option value="1080">1080p (Best)</option>
                   </select>
                 )}
               </div>
@@ -374,9 +284,9 @@ function DownloadForm({ isPremium }) {
             {/* Quality Info */}
             <div style={styles.qualityInfo}>
               {format === 'audio' ? (
-                <span>🎵 Audio: {audioQuality === '128k' ? '128k Bitrate' : 'Maximum Quality'}</span>
+                <span>🎵 Audio: {quality}k Bitrate</span>
               ) : (
-                <span>📺 Video: {resolution} {isPremium ? '(Premium)' : ''}</span>
+                <span>📺 Video: {quality}p</span>
               )}
             </div>
 
@@ -435,9 +345,6 @@ function DownloadForm({ isPremium }) {
           />
         )}
       </div>
-
-      {/* Ad Modal */}
-      <AdModal />
     </>
   );
 }
@@ -590,94 +497,6 @@ const styles = {
     borderRadius: '12px',
     textAlign: 'center',
     fontWeight: '600',
-    marginTop: '15px'
-  },
-  // Ad Modal Styles
-  adModal: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: 'rgba(0, 0, 0, 0.7)',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 5000,
-    backdropFilter: 'blur(5px)'
-  },
-  adContent: {
-    background: 'white',
-    borderRadius: '20px',
-    padding: '40px',
-    maxWidth: '600px',
-    width: '95%',
-    position: 'relative',
-    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)'
-  },
-  adClose: {
-    position: 'absolute',
-    top: '15px',
-    right: '15px',
-    fontSize: '28px',
-    cursor: 'pointer',
-    color: '#666',
-    fontWeight: 'bold'
-  },
-  adTitle: {
-    fontSize: '24px',
-    margin: '0 0 20px 0',
-    color: '#333',
-    textAlign: 'center'
-  },
-  adPlaceholder: {
-    margin: '30px 0',
-    minHeight: '250px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  adBanner: {
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    color: 'white',
-    padding: '40px',
-    borderRadius: '12px',
-    textAlign: 'center',
-    width: '100%'
-  },
-  adBannerText: {
-    fontSize: '18px',
-    fontWeight: 'bold',
-    marginBottom: '20px'
-  },
-  adGrid: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '15px'
-  },
-  adItem: {
-    background: 'rgba(255, 255, 255, 0.2)',
-    padding: '20px',
-    borderRadius: '8px',
-    fontSize: '14px',
-    fontWeight: '600'
-  },
-  adCloseBtn: {
-    width: '100%',
-    padding: '14px',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    color: 'white',
-    border: 'none',
-    borderRadius: '10px',
-    fontSize: '16px',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-    transition: 'all 0.3s ease'
-  },
-  adCounter: {
-    textAlign: 'center',
-    fontSize: '12px',
-    color: '#999',
     marginTop: '15px'
   }
 };
