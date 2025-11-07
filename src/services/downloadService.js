@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3000';
+const API_URL = 'https://video-downloader-backend-c550.onrender.com';
 
 const downloadService = {
   downloadVideo: async (url, format) => {
