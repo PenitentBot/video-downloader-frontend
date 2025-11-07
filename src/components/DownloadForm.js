@@ -3,6 +3,8 @@ import MetadataPreview from './MetadataPreview';
 import PlaylistViewer from './PlaylistViewer';
 
 function DownloadForm() {
+  const API_URL = 'https://video-downloader-backend-c550.onrender.com';
+  
   const [url, setUrl] = useState('');
   const [format, setFormat] = useState('video');
   const [quality, setQuality] = useState('480');
@@ -50,7 +52,7 @@ function DownloadForm() {
 
     try {
       if (isPlaylistUrl) {
-        const response = await fetch('http://localhost:3000/api/playlist-videos', {
+        const response = await fetch(`${API_URL}/api/playlist-videos`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url: newUrl })
@@ -64,7 +66,7 @@ function DownloadForm() {
           setMetadataError('Failed to fetch playlist');
         }
       } else {
-        const response = await fetch('http://localhost:3000/api/metadata', {
+        const response = await fetch(`${API_URL}/api/metadata`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url: newUrl })
@@ -78,7 +80,7 @@ function DownloadForm() {
         }
       }
     } catch (err) {
-      setMetadataError('Invalid URL');
+      setMetadataError('Invalid URL or server error');
     } finally {
       setMetadataLoading(false);
     }
@@ -98,7 +100,7 @@ function DownloadForm() {
           throw new Error('Download cancelled');
         }
 
-        const response = await fetch('http://localhost:3000/api/download-proxy', {
+        const response = await fetch(`${API_URL}/api/download-proxy`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -158,7 +160,7 @@ function DownloadForm() {
         throw new Error('Please paste a URL');
       }
 
-      const response = await fetch('http://localhost:3000/api/download-proxy', {
+      const response = await fetch(`${API_URL}/api/download-proxy`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
