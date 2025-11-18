@@ -3,7 +3,7 @@ import MetadataPreview from './MetadataPreview';
 import PlaylistViewer from './PlaylistViewer';
 
 function DownloadForm() {
-  const API_URL = 'https://video-downloader-backend-c550.onrender.com';
+  const API_URL = 'https://ytvideomp3downloader.netlify.app';
   
   const [url, setUrl] = useState('');
   const [format, setFormat] = useState('video');
