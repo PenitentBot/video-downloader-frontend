@@ -1,0 +1,76 @@
+.download-form {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.input-group {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.input-group input {
+  flex: 1;
+  padding: 12px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+.input-group button {
+  padding: 12px 24px;
+  background: #1db954;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.input-group button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.error {
+  background: #ff4444;
+  color: white;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+}
+
+.format-selector,
+.quality-selector {
+  margin: 15px 0;
+}
+
+.format-selector label {
+  margin-right: 20px;
+  cursor: pointer;
+}
+
+.quality-selector select {
+  padding: 8px;
+  border-radius: 4px;
+  border: 2px solid #ddd;
+}
+
+.download-btn {
+  width: 100%;
+  padding: 15px;
+  background: #ff6b6b;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 15px;
+}
+
+.download-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
