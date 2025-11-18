@@ -23,7 +23,9 @@ function DownloadForm({ onPlaylistDetected }) {
     }
 
     if (isPlaylistUrl(url)) {
-      onPlaylistDetected(url);
+      if (onPlaylistDetected) {
+        onPlaylistDetected(url);
+      }
       return;
     }
 
@@ -45,7 +47,7 @@ function DownloadForm({ onPlaylistDetected }) {
       const data = await response.json();
       setMetadata(data);
     } catch (err) {
-      setError('❌ Failed to fetch video info');
+      setError('❌ Failed to fetch video info: ' + err.message);
       console.error(err);
     } finally {
       setLoading(false);
@@ -78,6 +80,7 @@ function DownloadForm({ onPlaylistDetected }) {
       link.click();
       document.body.removeChild(link);
 
+      setError('✅ Download started! Check your downloads folder.');
     } catch (err) {
       setError('❌ Download failed: ' + err.message);
       console.error(err);
@@ -91,13 +94,14 @@ function DownloadForm({ onPlaylistDetected }) {
       <div className="input-group">
         <input
           type="text"
-          placeholder="Enter YouTube URL"
+          placeholder="Enter YouTube URL (e.g., https://youtube.com/watch?v=...)"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && fetchMetadata()}
+          disabled={loading}
         />
         <button onClick={fetchMetadata} disabled={loading}>
-          {loading ? 'Loading...' : 'Fetch Info'}
+          {loading ? '⏳ Loading...' : '🔍 Fetch Info'}
         </button>
       </div>
 
@@ -115,7 +119,7 @@ function DownloadForm({ onPlaylistDetected }) {
                 checked={format === 'mp4'}
                 onChange={(e) => setFormat(e.target.value)}
               />
-              Video (MP4)
+              🎥 Video (MP4)
             </label>
             <label>
               <input
@@ -124,7 +128,7 @@ function DownloadForm({ onPlaylistDetected }) {
                 checked={format === 'audio'}
                 onChange={(e) => setFormat(e.target.value)}
               />
-              Audio (MP3)
+              🎵 Audio (MP3)
             </label>
           </div>
 
@@ -132,8 +136,8 @@ function DownloadForm({ onPlaylistDetected }) {
             <div className="quality-selector">
               <label>Quality:</label>
               <select value={quality} onChange={(e) => setQuality(e.target.value)}>
-                <option value="360">360p</option>
-                <option value="480">480p</option>
+                <option value="360">360p (Low)</option>
+                <option value="480">480p (Medium)</option>
                 <option value="720">720p (HD)</option>
                 <option value="1080">1080p (Full HD)</option>
               </select>
@@ -145,7 +149,7 @@ function DownloadForm({ onPlaylistDetected }) {
             onClick={handleDownload}
             disabled={loading}
           >
-            {loading ? 'Downloading...' : '⬇️ Download'}
+            {loading ? '⏳ Preparing Download...' : '⬇️ Download Now'}
           </button>
         </>
       )}
