@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './DownloadForm.css';
 import MetadataPreview from './MetadataPreview';
 
@@ -16,15 +16,20 @@ function DownloadForm({ onPlaylistDetected }) {
     return url.includes('list=') || url.includes('playlist');
   };
 
-  const fetchMetadata = async () => {
-    if (!url.trim()) {
-      setError('Please enter a URL');
+  const isValidYouTubeUrl = (url) => {
+    return url.includes('youtube.com/watch') || url.includes('youtu.be/');
+  };
+
+  const fetchMetadata = async (videoUrl) => {
+    if (!isValidYouTubeUrl(videoUrl)) {
+      setError('Please enter a valid YouTube URL');
+      setMetadata(null);
       return;
     }
 
-    if (isPlaylistUrl(url)) {
+    if (isPlaylistUrl(videoUrl)) {
       if (onPlaylistDetected) {
-        onPlaylistDetected(url);
+        onPlaylistDetected(videoUrl);
       }
       return;
     }
@@ -37,7 +42,7 @@ function DownloadForm({ onPlaylistDetected }) {
       const response = await fetch(`${API_URL}/api/metadata`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url })
+        body: JSON.stringify({ url: videoUrl })
       });
 
       if (!response.ok) {
@@ -53,6 +58,20 @@ function DownloadForm({ onPlaylistDetected }) {
       setLoading(false);
     }
   };
+
+  // Auto-fetch when URL changes
+  useEffect(() => {
+    if (url.trim() && isValidYouTubeUrl(url)) {
+      const timer = setTimeout(() => {
+        fetchMetadata(url);
+      }, 1000); // Wait 1 second after user stops typing
+
+      return () => clearTimeout(timer);
+    } else {
+      setMetadata(null);
+      setError('');
+    }
+  }, [url]);
 
   const handleDownload = async () => {
     setLoading(true);
@@ -94,17 +113,14 @@ function DownloadForm({ onPlaylistDetected }) {
       <div className="input-group">
         <input
           type="text"
-          placeholder="Enter YouTube URL (e.g., https://youtube.com/watch?v=...)"
+          placeholder="Paste YouTube URL here (auto-fetches video info)"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && fetchMetadata()}
           disabled={loading}
         />
-        <button onClick={fetchMetadata} disabled={loading}>
-          {loading ? '⏳ Loading...' : '🔍 Fetch Info'}
-        </button>
       </div>
 
+      {loading && <div className="loading">⏳ Fetching video info...</div>}
       {error && <div className="error">{error}</div>}
 
       {metadata && (

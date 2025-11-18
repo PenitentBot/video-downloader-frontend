@@ -74,3 +74,11 @@
   background: #ccc;
   cursor: not-allowed;
 }
+.loading {
+  background: #4CAF50;
+  color: white;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  text-align: center;
+}
