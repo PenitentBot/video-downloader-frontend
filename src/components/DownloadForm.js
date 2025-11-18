@@ -20,58 +20,62 @@ function DownloadForm({ onPlaylistDetected }) {
     return url.includes('youtube.com/watch') || url.includes('youtu.be/');
   };
 
-  const fetchMetadata = async (videoUrl) => {
-    if (!isValidYouTubeUrl(videoUrl)) {
-      setError('Please enter a valid YouTube URL');
-      setMetadata(null);
-      return;
-    }
-
-    if (isPlaylistUrl(videoUrl)) {
-      if (onPlaylistDetected) {
-        onPlaylistDetected(videoUrl);
-      }
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    setMetadata(null);
-
-    try {
-      const response = await fetch(`${API_URL}/api/metadata`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: videoUrl })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch metadata');
-      }
-
-      const data = await response.json();
-      setMetadata(data);
-    } catch (err) {
-      setError('❌ Failed to fetch video info: ' + err.message);
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Auto-fetch when URL changes
   useEffect(() => {
-    if (url.trim() && isValidYouTubeUrl(url)) {
+    const fetchData = async () => {
+      if (!isValidYouTubeUrl(url)) {
+        setMetadata(null);
+        if (url.trim()) {
+          setError('Please enter a valid YouTube URL');
+        } else {
+          setError('');
+        }
+        return;
+      }
+
+      if (isPlaylistUrl(url)) {
+        if (onPlaylistDetected) {
+          onPlaylistDetected(url);
+        }
+        return;
+      }
+
+      setLoading(true);
+      setError('');
+      setMetadata(null);
+
+      try {
+        const response = await fetch(`${API_URL}/api/metadata`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch metadata');
+        }
+
+        const data = await response.json();
+        setMetadata(data);
+      } catch (err) {
+        setError('❌ Failed to fetch video info: ' + err.message);
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (url.trim()) {
       const timer = setTimeout(() => {
-        fetchMetadata(url);
-      }, 1000); // Wait 1 second after user stops typing
+        fetchData();
+      }, 1000);
 
       return () => clearTimeout(timer);
     } else {
       setMetadata(null);
       setError('');
     }
-  }, [url]);
+  }, [url, onPlaylistDetected]);
 
   const handleDownload = async () => {
     setLoading(true);
